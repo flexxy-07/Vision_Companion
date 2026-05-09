@@ -19,6 +19,7 @@ class DetectorCubit extends Cubit<DetectorState> {
   List<String> _labels = [];
   bool _isPaused = false;
   bool _isProcessing = false;
+  CameraImage? _latestImage;  // Track latest frame
 
   static const double _confidenceThreshold = 0.2;
   static const int _inputSize = 300;
@@ -53,7 +54,13 @@ class DetectorCubit extends Cubit<DetectorState> {
   }
 
   Future<void> runInference(CameraImage image) async {
-    if (_isPaused || _isProcessing) return;
+    if (_isPaused) return;
+    
+    // Always save latest frame
+    _latestImage = image;
+    
+    // If already processing, wait for it to finish then process latest frame
+    if (_isProcessing) return;
     
     if (_interpreter == null) {
       emit(DetectorResults([
@@ -69,31 +76,29 @@ class DetectorCubit extends Cubit<DetectorState> {
     _isProcessing = true;
 
     try {
-      final results = await _runInIsolate(image);
-
-      
-      // Always emit results to keep UI updating
-      if (results.isNotEmpty) {
-
-        emit(DetectorResults(results));
+      // Keep processing latest frames until caught up
+      while (_latestImage != null) {
+        final currentImage = _latestImage;
+        _latestImage = null;  // Mark as processed
         
-        // Don't save heartbeat to history
-        final actualDetections = results.where((d) => d.label != 'Inference Active').toList();
-        if (actualDetections.isNotEmpty) {
-          await _historyRepo.saveHistory(
-            featureType: 'object_detection',
-            resultSummary: actualDetections.map((d) => d.label).take(3).join(', '),
-          );
+        final results = await _runInIsolate(currentImage!);
+        
+        // Always emit results to keep UI updating
+        if (results.isNotEmpty) {
+          emit(DetectorResults(results));
+          
+          // Don't save heartbeat to history
+          final actualDetections = results.where((d) => d.label != 'Inference Active').toList();
+          if (actualDetections.isNotEmpty) {
+            await _historyRepo.saveHistory(
+              featureType: 'object_detection',
+              resultSummary: actualDetections.map((d) => d.label).take(3).join(', '),
+            );
+          }
+        } else {
+          // Emit empty results to clear old detections
+          emit(DetectorResults([]));
         }
-      } else {
-        // Emit heartbeat so UI knows inference is running
-        emit(DetectorResults([
-          Detection(
-            label: 'Scanning...',
-            confidence: 0.5,
-            boundingBox: const Rect.fromLTRB(0.0, 0.0, 0.3, 0.05),
-          )
-        ]));
       }
     } catch (e, st) {
       print('Inference error: $e\n$st');
