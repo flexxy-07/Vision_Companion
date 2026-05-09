@@ -3,6 +3,9 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:vision_companion/features/settings/cubit/settings_cubit.dart';
+import 'package:vision_companion/l10n/app_localizations.dart';
 
 import 'core/di/injection.dart';
 import 'core/router/app_router.dart';
@@ -27,17 +30,27 @@ class VisionCompanionApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authCubit = getIt<AuthCubit>()..checkAuthState();
+    final settingsCubit = getIt<SettingsCubit>()..loadSettings();
 
-    return BlocProvider.value(
-      value: authCubit,
-      child: MaterialApp.router(
+    return MultiBlocProvider(providers: [
+      BlocProvider.value(value: authCubit),
+      BlocProvider.value(value: settingsCubit)
+    ], child: BlocBuilder<SettingsCubit, SettingsState>(builder: (context, settingsState){
+      return MaterialApp.router(
         title: 'Vision Companion',
         debugShowCheckedModeBanner: false,
-        themeMode: ThemeMode.dark,
-        darkTheme: AppTheme.dark,
         theme: AppTheme.dark,
         routerConfig: AppRouter.router(authCubit),
-      ),
-    );
+        locale: settingsState.locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        
+      );
+    },));
   }
 }

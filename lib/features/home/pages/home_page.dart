@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vision_companion/features/auth/cubit/auth_state.dart';
+import 'package:vision_companion/l10n/app_localizations.dart';
 
 import '../../auth/cubit/auth_cubit.dart';
 
@@ -11,6 +12,7 @@ class HomePage extends StatelessWidget {
 
   void _showProfileSheet(BuildContext context, String name) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -57,10 +59,10 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 32),
             Semantics(
               button: true,
-              label: 'Sign Out Button',
+              label: l10n.signOutButtonLabel,
               child: OutlinedButton.icon(
                 icon: Icon(Icons.logout_rounded, color: theme.colorScheme.error),
-                label: Text('Sign Out', style: TextStyle(color: theme.colorScheme.error)),
+                label: Text(l10n.signOut, style: TextStyle(color: theme.colorScheme.error)),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: theme.colorScheme.error.withValues(alpha: 0.5)),
                   minimumSize: const Size(double.infinity, 56),
@@ -80,19 +82,20 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final authState = context.watch<AuthCubit>().state;
     final name = authState is AuthAuthenticated
-        ? (authState.user.displayName ?? authState.user.email ?? 'User')
-        : 'User';
+        ? (authState.user.displayName ?? authState.user.email ?? l10n.defaultUserName)
+        : l10n.defaultUserName;
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vision Companion'),
+        title: Text(l10n.appName),
         actions: [
           // Profile avatar
           Semantics(
-            label: 'Profile menu for $name',
+            label: l10n.profileLabel(name),
             button: true,
             child: GestureDetector(
               onTap: () => _showProfileSheet(context, name),
@@ -112,7 +115,7 @@ class HomePage extends StatelessWidget {
           ),
           Semantics(
             button: true,
-            label: 'Settings',
+            label: l10n.settingsLabel,
             child: IconButton(
               icon: const Icon(Icons.settings_outlined),
               onPressed: () => context.push('/settings'),
@@ -128,20 +131,20 @@ class HomePage extends StatelessWidget {
             children: [
               // Greeting
               Text(
-                'Hello, ${name.split(' ').first}',
+                l10n.homeGreeting(name.split(' ').first),
                 style: theme.textTheme.headlineMedium,
               ),
               const SizedBox(height: 8),
               Text(
-                'What would you like to explore today?',
+                l10n.whatToExplore,
                 style: theme.textTheme.bodyLarge,
               ),
               const SizedBox(height: 40),
               // Feature 1 card
               _FeatureCard(
                 icon: Icons.document_scanner_outlined,
-                title: 'Live Object Detector',
-                description: 'Real-time environment scanning & vocalization',
+                title: l10n.feature1Title,
+                description: l10n.feature1Description,
                 color: theme.colorScheme.primary,
                 onStart: () => context.push('/detector'),
               ),
@@ -149,8 +152,8 @@ class HomePage extends StatelessWidget {
               // Feature 2 card
               _FeatureCard(
                 icon: Icons.auto_awesome_rounded,
-                title: 'AI Image Analyzer',
-                description: 'Deep visual analysis of captured photos',
+                title: l10n.feature2Title,
+                description: l10n.feature2Description,
                 color: theme.colorScheme.secondary,
                 onStart: () => context.push('/analyzer'),
               ),
@@ -158,11 +161,11 @@ class HomePage extends StatelessWidget {
               // History button
               Semantics(
                 button: true,
-                label: 'View detection history',
+                label: l10n.viewHistoryLabel,
                 child: OutlinedButton.icon(
                   onPressed: () => context.push('/history'),
                   icon: const Icon(Icons.history_rounded),
-                  label: const Text('Detection History'),
+                  label: Text(l10n.historyTitle),
                 ),
               ),
             ],
@@ -191,9 +194,10 @@ class _FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     
     return Semantics(
-      label: '$title feature. $description. Tap to open.',
+      label: l10n.featureOpenLabel(title, description),
       button: true,
       child: Container(
         decoration: BoxDecoration(

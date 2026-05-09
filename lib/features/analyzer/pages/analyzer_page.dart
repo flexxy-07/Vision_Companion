@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:vision_companion/l10n/app_localizations.dart';
 
 import '../../../core/di/injection.dart';
 import '../cubit/analyzer_cubit.dart';
@@ -45,18 +46,20 @@ class _AnalyzerPageState extends State<AnalyzerPage> {
   Future<void> _captureAndAnalyze(BuildContext context) async {
     if (_cameraController == null || !_cameraReady) return;
 
+    final cubit = context.read<AnalyzerCubit>();
+    final l10n = AppLocalizations.of(context);
+    
     // TalkBack announcement
-    SemanticsService.announce(
-        'Analyzing image, please wait', TextDirection.ltr);
+    SemanticsService.sendAnnouncement(
+        View.of(context), l10n.analyzingImage, TextDirection.ltr);
 
     final xFile = await _cameraController!.takePicture();
     final file = File(xFile.path);
 
+    if (!mounted) return;
     setState(() => _capturedImage = file);
 
-    if (mounted) {
-      context.read<AnalyzerCubit>().analyzeImage(file);
-    }
+    cubit.analyzeImage(file);
   }
 
   @override
@@ -67,11 +70,13 @@ class _AnalyzerPageState extends State<AnalyzerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return BlocProvider(
       create: (_) => getIt<AnalyzerCubit>(),
       child: Builder(builder: (context) {
         return Scaffold(
-          appBar: AppBar(title: const Text('AI Image Analyzer')),
+          appBar: AppBar(title: Text(l10n.feature2Title)),
           body: BlocConsumer<AnalyzerCubit, AnalyzerState>(
             listener: (context, state) {
               if (state is AnalyzerError) {
@@ -80,7 +85,7 @@ class _AnalyzerPageState extends State<AnalyzerPage> {
                     content: Text(state.message),
                     backgroundColor: Colors.red,
                     action: SnackBarAction(
-                      label: 'Retry',
+                      label: l10n.retryLabel,
                       textColor: Colors.white,
                       onPressed: () {
                         if (_capturedImage != null) {
@@ -126,16 +131,16 @@ class _AnalyzerPageState extends State<AnalyzerPage> {
                                   color: Colors.black54,
                                   child: Center(
                                     child: Semantics(
-                                      label: 'Processing',
+                                      label: l10n.processingLabel,
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           const CircularProgressIndicator(
                                               color: Colors.white),
                                           const SizedBox(height: 16),
-                                          const Text(
-                                            'Analyzing image, please wait',
-                                            style: TextStyle(
+                                          Text(
+                                            l10n.analyzingImage,
+                                            style: const TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 16),
                                           ),
@@ -154,25 +159,25 @@ class _AnalyzerPageState extends State<AnalyzerPage> {
                     child: state is AnalyzerResult
                         ? Semantics(
                             button: true,
-                            label: 'Retake photo',
+                            label: l10n.retakePhotoLabel,
                             child: ElevatedButton.icon(
                               onPressed: () {
                                 setState(() => _capturedImage = null);
                                 context.read<AnalyzerCubit>().reset();
                               },
                               icon: const Icon(Icons.refresh),
-                              label: const Text('Retake Photo'),
+                              label: Text(l10n.retakePhoto),
                             ),
                           )
                         : Semantics(
                             button: true,
-                            label: 'Capture image',
+                            label: l10n.captureImageLabel,
                             child: ElevatedButton.icon(
                               onPressed: isProcessing
                                   ? null
                                   : () => _captureAndAnalyze(context),
                               icon: const Icon(Icons.camera_alt),
-                              label: const Text('Capture & Analyze'),
+                              label: Text(l10n.captureImage),
                             ),
                           ),
                   ),
@@ -195,6 +200,7 @@ class _ResultView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -214,7 +220,7 @@ class _ResultView extends StatelessWidget {
             ),
           const SizedBox(height: 16),
           // Description
-          Text('Analysis Results',
+          Text(l10n.analysisResults,
               style: theme.textTheme.titleLarge
                   ?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
@@ -223,7 +229,7 @@ class _ResultView extends StatelessWidget {
           const SizedBox(height: 16),
           // Tags
           if (data.tags.isNotEmpty) ...[
-            Text('Detected Tags',
+            Text(l10n.detectedTags,
                 style: theme.textTheme.titleMedium
                     ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -233,7 +239,7 @@ class _ResultView extends StatelessWidget {
               children: data.tags
                   .map(
                     (tag) => Semantics(
-                      label: 'Tag: ${tag.label}, ${tag.confidencePercentage}% confidence',
+                      label: l10n.tagLabel(tag.label, tag.confidencePercentage),
                       child: Chip(
                         label: Text(
                             '${tag.label}  ${tag.confidencePercentage}%'),
@@ -248,7 +254,7 @@ class _ResultView extends StatelessWidget {
           // Colors
           if (data.dominantColors.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text('Dominant Colors',
+            Text(l10n.dominantColors,
                 style: theme.textTheme.titleMedium
                     ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),

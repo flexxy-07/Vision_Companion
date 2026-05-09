@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:vision_companion/l10n/app_localizations.dart';
 
 import '../../../core/di/injection.dart';
 import '../cubit/detector_cubit.dart';
@@ -60,14 +61,17 @@ class _DetectorPageState extends State<DetectorPage> {
     // Haptic feedback on detection
     HapticFeedback.mediumImpact();
 
+    final l10n = AppLocalizations.of(context);
+
     // TalkBack — announce top object every 2 seconds debounced
     _announceTimer?.cancel();
     _announceTimer = Timer(const Duration(seconds: 2), () {
       final top = detections.first.label;
       if (top != _lastAnnounced) {
         _lastAnnounced = top;
-        SemanticsService.announce(
-          'Detected: $top ${detections.first.confidencePercent}',
+        SemanticsService.sendAnnouncement(
+          View.of(context),
+          l10n.detectedAnnouncement(top, detections.first.confidencePercent),
           TextDirection.ltr,
         );
       }
@@ -84,6 +88,8 @@ class _DetectorPageState extends State<DetectorPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return BlocProvider.value(
       value: getIt<DetectorCubit>(),
       child: Builder(builder: (context) {
@@ -92,7 +98,7 @@ class _DetectorPageState extends State<DetectorPage> {
           appBar: AppBar(
             backgroundColor: Colors.black,
             foregroundColor: Colors.white,
-            title: const Text('Live Object Detector'),
+            title: Text(l10n.feature1Title),
           ),
           body: BlocConsumer<DetectorCubit, DetectorState>(
             listener: (context, state) {
@@ -115,7 +121,7 @@ class _DetectorPageState extends State<DetectorPage> {
                       children: [
                         // Camera preview
                         Semantics(
-                          label: 'Live camera feed for object detection',
+                          label: l10n.cameraFeedLabel,
                           child: _cameraReady && _cameraController != null
                               ? CameraPreview(_cameraController!)
                               : const Center(
@@ -163,8 +169,8 @@ class _DetectorPageState extends State<DetectorPage> {
                               ),
                               child: Text(
                                 detections.isEmpty 
-                                  ? 'Scanning...' 
-                                  : '${detections.length} detected',
+                                  ? l10n.scanningText
+                                  : l10n.detectedText('${detections.length}'),
                                 style: const TextStyle(
                                     color: Colors.white, fontSize: 13),
                               ),
@@ -182,7 +188,9 @@ class _DetectorPageState extends State<DetectorPage> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              'Ready: ${_cameraReady ? 'Yes' : 'No'}\nDetections: ${detections.length}',
+                              l10n.cameraStatus(_cameraReady ? l10n.yes : l10n.no) +
+                              '\n' +
+                              l10n.detectionCountStatus(detections.length),
                               style: const TextStyle(
                                   color: Colors.white, fontSize: 10),
                             ),
@@ -202,15 +210,15 @@ class _DetectorPageState extends State<DetectorPage> {
                         Semantics(
                           button: true,
                           label: isPaused
-                              ? 'Resume detection'
-                              : 'Pause detection',
+                              ? l10n.resumeDetection
+                              : l10n.pauseDetection,
                           child: ElevatedButton.icon(
                             onPressed: () =>
                                 context.read<DetectorCubit>().togglePause(),
                             icon: Icon(
                                 isPaused ? Icons.play_arrow : Icons.pause),
                             label: Text(
-                                isPaused ? 'Resume' : 'Pause'),
+                                isPaused ? l10n.resumeButton : l10n.pauseButton),
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size(160, 52),
                               backgroundColor: isPaused

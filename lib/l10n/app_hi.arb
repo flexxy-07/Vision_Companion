@@ -1,0 +1,139 @@
+{
+  "@@locale": "hi",
+  "appName": "विज़न कंपेनियन",
+  "loginTitle": "वापस स्वागत है",
+  "loginSubtitle": "जारी रखने के लिए साइन इन करें",
+  "emailLabel": "ईमेल",
+  "passwordLabel": "पासवर्ड",
+  "signInButton": "साइन इन",
+  "signInWithGoogle": "Google से साइन इन करें",
+  "noAccount": "खाता नहीं है? साइन अप करें",
+  "signUpTitle": "खाता बनाएं",
+  "signUpButton": "साइन अप",
+  "haveAccount": "पहले से खाता है? साइन इन करें",
+  "nameLabel": "पूरा नाम",
+  "homeGreeting": "नमस्ते, {name}!",
+  "@homeGreeting": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "feature1Title": "लाइव ऑब्जेक्ट डिटेक्टर",
+  "feature1Description": "कैमरे से रियल-टाइम में वस्तुओं को पहचानें",
+  "feature2Title": "AI इमेज एनालाइज़र",
+  "feature2Description": "AI से छवियां कैप्चर और विश्लेषण करें",
+  "startButton": "शुरू करें",
+  "pauseDetection": "डिटेक्शन रोकें",
+  "resumeDetection": "डिटेक्शन फिर शुरू करें",
+  "cameraFeedLabel": "ऑब्जेक्ट डिटेक्शन के लिए लाइव कैमरा फ़ीड",
+  "captureImage": "कैप्चर करें और विश्लेषण करें",
+  "analyzingImage": "इमेज का विश्लेषण हो रहा है, कृपया प्रतीक्षा करें",
+  "processingLabel": "प्रोसेसिंग",
+  "retryButton": "पुनः प्रयास करें",
+  "historyTitle": "डिटेक्शन इतिहास",
+  "noHistory": "अभी कोई इतिहास नहीं। फ़ीचर का उपयोग शुरू करें!",
+  "settingsTitle": "सेटिंग्स",
+  "languageLabel": "भाषा",
+  "english": "अंग्रेज़ी",
+  "hindi": "हिन्दी",
+  "profileLabel": "प्रोफ़ाइल: {name}, मेनू खोलने के लिए टैप करें",
+  "@profileLabel": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "signOut": "साइन आउट",
+  "errorOccurred": "कुछ गलत हो गया। कृपया पुनः प्रयास करें।",
+  "networkError": "नेटवर्क त्रुटि। अपना कनेक्शन जांचें।",
+  "analysisResults": "विश्लेषण परिणाम",
+  "detectedTags": "पहचाने गए टैग",
+  "dominantColors": "प्रमुख रंग",
+  "retakePhoto": "फिर से फ़ोटो लें",
+  "tagLabel": "टैग: {tag}, {confidence}% विश्वसनीयता",
+  "@tagLabel": {
+    "placeholders": {
+      "tag": { "type": "String" },
+      "confidence": { "type": "String" }
+    }
+  },
+  "selectedLanguage": "भाषा {language} में बदल दी गई",
+  "@selectedLanguage": {
+    "placeholders": {
+      "language": { "type": "String" }
+    }
+  },
+  "detectionCount": "{count, plural, =0{कोई वस्तु नहीं मिली} =1{1 वस्तु मिली} other{{count} वस्तुएं मिलीं}}",
+  "@detectionCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "emailAddress": "ईमेल पता",
+  "enterValidEmail": "एक मान्य ईमेल दर्ज करें",
+  "enterYourName": "अपना नाम दर्ज करें",
+  "minCharacters": "न्यूनतम 6 वर्ण",
+  "continueWithGoogle": "गूगल के साथ जारी रखें",
+  "whatToExplore": "आज आप क्या एक्सप्लोर करना चाहेंगे?",
+  "joinVisionCompanion": "विज़न कंपेनियन में शामिल हों",
+  "setupPremium": "अपनी प्रीमियम एक्सेस सेटअप करें",
+  "scanningText": "स्कैनिंग...",
+  "detectedText": "{count} पहचाना गया",
+  "@detectedText": {
+    "placeholders": {
+      "count": { "type": "String" }
+    }
+  },
+  "pauseButton": "रोकें",
+  "resumeButton": "जारी रखें",
+  "showPassword": "पासवर्ड दिखाएं",
+  "hidePassword": "पासवर्ड छुपाएं",
+  "goBack": "वापस जाएं",
+  "objectDetection": "वस्तु पहचान",
+  "imageAnalysis": "छवि विश्लेषण",
+  "detector": "डिटेक्टर",
+  "analyzer": "एनालाइज़र",
+  "emailInputLabel": "ईमेल इनपुट फ़ील्ड",
+  "passwordInputLabel": "पासवर्ड इनपुट फ़ील्ड",
+  "signInButtonLabel": "साइन इन बटन",
+  "googleSignInButtonLabel": "गूगल के साथ साइन इन बटन",
+  "navigateToSignUpLabel": "साइन अप पर जाएं",
+  "fullNameInputLabel": "पूरा नाम इनपुट फ़ील्ड",
+  "signUpButtonLabel": "साइन अप बटन",
+  "navigateToSignInLabel": "साइन इन पर जाएं",
+  "signOutButtonLabel": "साइन आउट बटन",
+  "settingsLabel": "सेटिंग्स",
+  "viewHistoryLabel": "डिटेक्शन इतिहास देखें",
+  "featureOpenLabel": "{title} सुविधा। {description}। खोलने के लिए टैप करें।",
+  "@featureOpenLabel": {
+    "placeholders": {
+      "title": { "type": "String" },
+      "description": { "type": "String" }
+    }
+  },
+  "detectedAnnouncement": "पहचाना गया: {label} {confidence}",
+  "@detectedAnnouncement": {
+    "placeholders": {
+      "label": { "type": "String" },
+      "confidence": { "type": "String" }
+    }
+  },
+  "retakePhotoLabel": "फिर से फोटो लें",
+  "captureImageLabel": "छवि कैप्चर करें",
+  "retryLabel": "पुनः प्रयास करें",
+  "selected": "चयनित",
+  "defaultUserName": "उपयोगकर्ता",
+  "cameraStatus": "तैयार: {status}",
+  "@cameraStatus": {
+    "placeholders": {
+      "status": { "type": "String" }
+    }
+  },
+  "detectionCountStatus": "डिटेक्शन: {count}",
+  "@detectionCountStatus": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "yes": "हाँ",
+  "no": "नहीं"
+}

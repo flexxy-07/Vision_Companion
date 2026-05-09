@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vision_companion/features/auth/cubit/auth_state.dart';
+import 'package:vision_companion/l10n/app_localizations.dart';
 
 import '../cubit/auth_cubit.dart';
 
@@ -36,6 +37,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: BlocConsumer<AuthCubit, AuthState>(
@@ -99,62 +101,62 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 40),
                       Text(
-                        'Welcome Back',
+                        l10n.loginTitle,
                         style: theme.textTheme.headlineMedium,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Sign in to your account',
+                        l10n.loginSubtitle,
                         style: theme.textTheme.bodyLarge,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 48),
                       // Email
                       Semantics(
-                        label: 'Email Input Field',
+                        label: l10n.emailInputLabel,
                         child: TextFormField(
                           controller: _emailCtrl,
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: 'Email address',
-                            prefixIcon: Icon(Icons.email_outlined),
+                          decoration: InputDecoration(
+                            labelText: l10n.emailLabel,
+                            prefixIcon: const Icon(Icons.email_outlined),
                           ),
                           validator: (v) => v == null || !v.contains('@')
-                              ? 'Enter a valid email'
+                              ? l10n.enterValidEmail
                               : null,
                         ),
                       ),
                       const SizedBox(height: 20),
                       // Password
                       Semantics(
-                        label: 'Password Input Field',
+                        label: l10n.passwordInputLabel,
                         child: TextFormField(
                           controller: _passwordCtrl,
                           obscureText: _obscure,
                           textInputAction: TextInputAction.done,
                           onFieldSubmitted: (_) => _submit(),
                           decoration: InputDecoration(
-                            labelText: 'Password',
+                            labelText: l10n.passwordLabel,
                             prefixIcon: const Icon(Icons.lock_outline_rounded),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                               ),
                               onPressed: () => setState(() => _obscure = !_obscure),
-                              tooltip: _obscure ? 'Show password' : 'Hide password',
+                              tooltip: _obscure ? l10n.showPassword : l10n.hidePassword,
                             ),
                           ),
                           validator: (v) =>
-                              v == null || v.length < 6 ? 'Min 6 characters' : null,
+                              v == null || v.length < 6 ? l10n.minCharacters : null,
                         ),
                       ),
                       const SizedBox(height: 32),
                       // Sign In button
                       Semantics(
                         button: true,
-                        label: 'Sign In Button',
+                        label: l10n.signInButtonLabel,
                         child: ElevatedButton(
                           onPressed: state is AuthLoading ? null : _submit,
                           child: state is AuthLoading
@@ -163,33 +165,33 @@ class _LoginPageState extends State<LoginPage> {
                                   width: 24,
                                   child: CircularProgressIndicator(strokeWidth: 2.5),
                                 )
-                              : const Text('Sign In'),
+                              : Text(l10n.signInButton),
                         ),
                       ),
                       const SizedBox(height: 20),
                       // Google Sign In
                       Semantics(
                         button: true,
-                        label: 'Sign In with Google Button',
+                        label: l10n.googleSignInButtonLabel,
                         child: OutlinedButton.icon(
                           onPressed: state is AuthLoading
                               ? null
                               : () => context.read<AuthCubit>().signInWithGoogle(),
                           icon: const Icon(Icons.g_mobiledata, size: 32),
-                          label: const Text('Continue with Google'),
+                          label: Text(l10n.continueWithGoogle),
                         ),
                       ),
                       const SizedBox(height: 32),
                       Semantics(
                         button: true,
-                        label: 'Navigate to Sign Up',
+                        label: l10n.navigateToSignUpLabel,
                         child: TextButton(
                           onPressed: () => context.go('/signup'),
                           style: TextButton.styleFrom(
                             foregroundColor: theme.colorScheme.primary,
                             textStyle: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                          child: const Text("Don't have an account? Sign up"),
+                          child: Text(l10n.noAccount),
                         ),
                       ),
                     ],

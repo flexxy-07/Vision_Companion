@@ -1,0 +1,139 @@
+{
+  "@@locale": "en",
+  "appName": "Vision Companion",
+  "loginTitle": "Welcome Back",
+  "loginSubtitle": "Sign in to continue",
+  "emailLabel": "Email",
+  "passwordLabel": "Password",
+  "signInButton": "Sign In",
+  "signInWithGoogle": "Sign in with Google",
+  "noAccount": "Don't have an account? Sign up",
+  "signUpTitle": "Create Account",
+  "signUpButton": "Sign Up",
+  "haveAccount": "Already have an account? Sign in",
+  "nameLabel": "Full Name",
+  "homeGreeting": "Hello, {name}!",
+  "@homeGreeting": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "feature1Title": "Live Object Detector",
+  "feature1Description": "Detect objects in real-time using your camera",
+  "feature2Title": "AI Image Analyzer",
+  "feature2Description": "Capture and analyze images with AI",
+  "startButton": "Start",
+  "pauseDetection": "Pause Detection",
+  "resumeDetection": "Resume Detection",
+  "cameraFeedLabel": "Live camera feed for object detection",
+  "captureImage": "Capture & Analyze",
+  "analyzingImage": "Analyzing image, please wait",
+  "processingLabel": "Processing",
+  "retryButton": "Retry",
+  "historyTitle": "Detection History",
+  "noHistory": "No history yet. Start using features!",
+  "settingsTitle": "Settings",
+  "languageLabel": "Language",
+  "english": "English",
+  "hindi": "Hindi",
+  "profileLabel": "Profile: {name}, tap to open menu",
+  "@profileLabel": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "signOut": "Sign Out",
+  "errorOccurred": "Something went wrong. Please try again.",
+  "networkError": "Network error. Check your connection.",
+  "analysisResults": "Analysis Results",
+  "detectedTags": "Detected Tags",
+  "dominantColors": "Dominant Colors",
+  "retakePhoto": "Retake Photo",
+  "tagLabel": "Tag: {tag}, {confidence}% confidence",
+  "@tagLabel": {
+    "placeholders": {
+      "tag": { "type": "String" },
+      "confidence": { "type": "String" }
+    }
+  },
+  "selectedLanguage": "Language changed to {language}",
+  "@selectedLanguage": {
+    "placeholders": {
+      "language": { "type": "String" }
+    }
+  },
+  "detectionCount": "{count, plural, =0{No objects detected} =1{1 object detected} other{{count} objects detected}}",
+  "@detectionCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "emailAddress": "Email address",
+  "enterValidEmail": "Enter a valid email",
+  "enterYourName": "Enter your name",
+  "minCharacters": "Min 6 characters",
+  "continueWithGoogle": "Continue with Google",
+  "whatToExplore": "What would you like to explore today?",
+  "joinVisionCompanion": "Join Vision Companion",
+  "setupPremium": "Set up your premium access",
+  "scanningText": "Scanning...",
+  "detectedText": "{count} detected",
+  "@detectedText": {
+    "placeholders": {
+      "count": { "type": "String" }
+    }
+  },
+  "pauseButton": "Pause",
+  "resumeButton": "Resume",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "goBack": "Go back",
+  "objectDetection": "Object detection",
+  "imageAnalysis": "Image analysis",
+  "detector": "Detector",
+  "analyzer": "Analyzer",
+  "emailInputLabel": "Email Input Field",
+  "passwordInputLabel": "Password Input Field",
+  "signInButtonLabel": "Sign In Button",
+  "googleSignInButtonLabel": "Sign In with Google Button",
+  "navigateToSignUpLabel": "Navigate to Sign Up",
+  "fullNameInputLabel": "Full Name Input Field",
+  "signUpButtonLabel": "Sign Up Button",
+  "navigateToSignInLabel": "Navigate to Sign In",
+  "signOutButtonLabel": "Sign Out Button",
+  "settingsLabel": "Settings",
+  "viewHistoryLabel": "View detection history",
+  "featureOpenLabel": "{title} feature. {description}. Tap to open.",
+  "@featureOpenLabel": {
+    "placeholders": {
+      "title": { "type": "String" },
+      "description": { "type": "String" }
+    }
+  },
+  "detectedAnnouncement": "Detected: {label} {confidence}",
+  "@detectedAnnouncement": {
+    "placeholders": {
+      "label": { "type": "String" },
+      "confidence": { "type": "String" }
+    }
+  },
+  "retakePhotoLabel": "Retake photo",
+  "captureImageLabel": "Capture image",
+  "retryLabel": "Retry",
+  "selected": "selected",
+  "defaultUserName": "User",
+  "cameraStatus": "Ready: {status}",
+  "@cameraStatus": {
+    "placeholders": {
+      "status": { "type": "String" }
+    }
+  },
+  "detectionCountStatus": "Detections: {count}",
+  "@detectionCountStatus": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "yes": "Yes",
+  "no": "No"
+}

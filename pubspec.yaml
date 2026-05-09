@@ -50,6 +50,9 @@ dependencies:
   tflite_flutter: ^0.12.1
   image: ^4.8.0
   http: ^1.6.0
+  flutter_localizations:
+    sdk: flutter
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:
@@ -73,7 +76,7 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-
+  generate: true
   assets:
     - .env
     - assets/models/

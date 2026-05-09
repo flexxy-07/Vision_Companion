@@ -32,7 +32,7 @@ class BoundingBoxPainter extends CustomPainter{
       canvas.drawRect(rect, paint);
 
       final bgPaint = Paint()
-      ..color = det.categoryColor.withOpacity(0.85)
+      ..color = det.categoryColor.withValues(alpha: 0.85)
       ..style = PaintingStyle.fill;
 
       final textSpan = TextSpan(
