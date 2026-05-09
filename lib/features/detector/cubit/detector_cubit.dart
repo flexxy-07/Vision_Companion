@@ -39,8 +39,10 @@ class DetectorCubit extends Cubit<DetectorState> {
           .where((l) => l.isNotEmpty)
           .toList();
 
+      print('✅ MODEL LOADED: interpreter=$_interpreter, labels=${_labels.length}');
       emit(DetectorRunning());
     } catch (e) {
+      print('❌ MODEL LOAD FAILED: $e');
       emit(DetectorError('Failed to load model: $e'));
     }
   }
@@ -68,8 +70,11 @@ class DetectorCubit extends Cubit<DetectorState> {
 
     try {
       final results = await _runInIsolate(image);
+      print('🔄 runInference: got ${results.length} results from isolate');
+      
       // Always emit results to keep UI updating
       if (results.isNotEmpty) {
+        print('📡 Emitting ${results.length} detections to UI');
         emit(DetectorResults(results));
         
         // Don't save heartbeat to history
@@ -134,6 +139,8 @@ class DetectorCubit extends Cubit<DetectorState> {
     }
 
     final detections = result as List<Map<String, dynamic>>;
+    print('✅ RECEIVED ${detections.length} detections from isolate');
+    
     return detections
         .map((e) => Detection(
               label: e['label'] as String,
@@ -150,6 +157,8 @@ class DetectorCubit extends Cubit<DetectorState> {
 
   static void _isolateInference(_IsolateData data) {
     try {
+      print('🔄 ISOLATE STARTED: width=${data.width}, height=${data.height}, threshold=${data.confidenceThreshold}');
+      
       final inputBytes = _preprocessPlanes(
         data.planesData,
         data.width,
@@ -199,20 +208,22 @@ class DetectorCubit extends Cubit<DetectorState> {
       // Create output tensors with appropriate sizes
       final outputs = <int, Object>{};
       
-      final boxesShape = [1, 100, 4];
-      final scoresShape = [1, 100];
-      final classesShape = [1, 100];
+      final boxesShape = [1, 10, 4];
+      final scoresShape = [1, 10];
+      final classesShape = [1, 10];
       final countShape = [1];
       
-      outputs[boxesIdx] = List<double>.filled(1 * 100 * 4, 0.0).reshape(boxesShape);
-      outputs[scoresIdx] = List<double>.filled(1 * 100, 0.0).reshape(scoresShape);
-      outputs[classesIdx] = List<double>.filled(1 * 100, 0.0).reshape(classesShape);
+      outputs[boxesIdx] = List<double>.filled(1 * 10 * 4, 0.0).reshape(boxesShape);
+      outputs[scoresIdx] = List<double>.filled(1 * 10, 0.0).reshape(scoresShape);
+      outputs[classesIdx] = List<double>.filled(1 * 10, 0.0).reshape(classesShape);
       outputs[countIdx] = List<double>.filled(1, 0.0).reshape(countShape);
 
+      print('🔄 Running inference with inputs reshaped...');
       interpreter.runForMultipleInputs([input], outputs);
+      print('✅ Inference complete');
 
       final countArray = outputs[countIdx] as List<dynamic>;
-      final count = (countArray[0] as double).toInt().clamp(0, 100);
+      final count = (countArray[0] as double).toInt().clamp(0, 10);
       
       print('🔍 DETECTOR: count=$count, boxesIdx=$boxesIdx, scoresIdx=$scoresIdx, classesIdx=$classesIdx, countIdx=$countIdx');
       
@@ -244,6 +255,8 @@ class DetectorCubit extends Cubit<DetectorState> {
         final left = (box[1] as double).clamp(0.0, 1.0);
         final bottom = (box[2] as double).clamp(0.0, 1.0);
         final right = (box[3] as double).clamp(0.0, 1.0);
+
+        print('  Box[$i]: top=$top, left=$left, bottom=$bottom, right=$right, label=$label, score=$score');
 
         // Validate box
         if (right > left && bottom > top && (right - left) > 0.01 && (bottom - top) > 0.01) {
