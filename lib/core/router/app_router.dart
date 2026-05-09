@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vision_companion/features/analyzer/pages/analyzer_page.dart';
 import 'package:vision_companion/features/auth/cubit/auth_cubit.dart';
 import 'package:vision_companion/features/auth/cubit/auth_state.dart';
 import 'package:vision_companion/features/auth/pages/login_page.dart';
@@ -30,6 +31,7 @@ class AppRouter {
         GoRoute(path: '/home', builder: (_, __) => const HomePage()),
         GoRoute(path: '/history', builder: (_, __) => const HistoryPage()),
         GoRoute(path: '/detector', builder: (_, __) => const DetectorPage()),
+        GoRoute(path: '/analyzer', builder: (_, __) => const AnalyzerPage())
       ],
     );
   }
