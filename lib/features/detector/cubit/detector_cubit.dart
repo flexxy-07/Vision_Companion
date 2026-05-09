@@ -68,6 +68,7 @@ class DetectorCubit extends Cubit<DetectorState> {
 
     try {
       final results = await _runInIsolate(image);
+      // Always emit results to keep UI updating
       if (results.isNotEmpty) {
         emit(DetectorResults(results));
         
@@ -80,14 +81,21 @@ class DetectorCubit extends Cubit<DetectorState> {
           );
         }
       } else {
-        emit(DetectorRunning());
+        // Emit heartbeat so UI knows inference is running
+        emit(DetectorResults([
+          Detection(
+            label: 'Scanning...',
+            confidence: 0.5,
+            boundingBox: const Rect.fromLTRB(0.0, 0.0, 0.3, 0.05),
+          )
+        ]));
       }
     } catch (e, st) {
       print('Inference error: $e\n$st');
-      // Show the exact error on screen as a fake bounding box!
+      // Show the exact error on screen
       emit(DetectorResults([
         Detection(
-          label: 'ERR: ${e.toString().replaceAll('\n', ' ')}',
+          label: 'ERROR: ${e.toString().replaceAll('\n', ' ')}',
           confidence: 1.0,
           boundingBox: const Rect.fromLTRB(0.05, 0.4, 0.95, 0.6),
         )

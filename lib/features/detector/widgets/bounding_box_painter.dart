@@ -9,18 +9,23 @@ class BoundingBoxPainter extends CustomPainter{
 
   @override
   void paint(Canvas canvas, Size size){
+    if (detections.isEmpty) return;
+    
     for(final det in detections){
+      // Skip only the "Inference Active" heartbeat boxes
+      if (det.label == 'Inference Active') continue;
+      
       final paint = Paint()
       ..color = det.categoryColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
+      ..strokeWidth = 3.0;
 
-      final rect = Rect.fromLTRB(
-        det.boundingBox.left * size.width,
-        det.boundingBox.top * size.height,
-        det.boundingBox.right * size.width,
-        det.boundingBox.bottom * size.height,
-      );
+      final left = det.boundingBox.left * size.width;
+      final top = det.boundingBox.top * size.height;
+      final right = det.boundingBox.right * size.width;
+      final bottom = det.boundingBox.bottom * size.height;
+      
+      final rect = Rect.fromLTRB(left, top, right, bottom);
 
       canvas.drawRect(rect, paint);
 
@@ -30,7 +35,7 @@ class BoundingBoxPainter extends CustomPainter{
 
       final textSpan = TextSpan(
         text: ' ${det.label} ${det.confidencePercent} ',
-        style: const TextStyle(color: Colors.white, fontSize: 12),
+        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
       );
 
       final tp = TextPainter(
@@ -38,15 +43,16 @@ class BoundingBoxPainter extends CustomPainter{
         textDirection: TextDirection.ltr,
       )..layout();
 
+      final labelTop = (top - tp.height - 4).clamp(0.0, size.height - tp.height);
       final labelRect = Rect.fromLTWH(
-        rect.left,
-        rect.top - tp.height - 2,
-        tp.width,
-        tp.height + 2,
+        left,
+        labelTop,
+        tp.width + 4,
+        tp.height + 4,
       );
 
       canvas.drawRect(labelRect, bgPaint);
-      tp.paint(canvas, Offset(rect.left, rect.top - tp.height - 1));
+      tp.paint(canvas, Offset(left + 2, labelTop + 2));
     }
   }
 

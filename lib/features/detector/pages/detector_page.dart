@@ -123,13 +123,15 @@ class _DetectorPageState extends State<DetectorPage> {
                                 ),
                         ),
                         // Bounding boxes overlay
-                        if (detections.isNotEmpty && _cameraReady)
-                          CustomPaint(
-                            painter: BoundingBoxPainter(
-                              detections,
-                              Size(
-                                _cameraController!.value.previewSize!.width,
-                                _cameraController!.value.previewSize!.height,
+                        if (_cameraReady && _cameraController != null)
+                          SizedBox.expand(
+                            child: CustomPaint(
+                              painter: BoundingBoxPainter(
+                                detections,
+                                Size(
+                                  _cameraController!.value.previewSize!.width.toDouble(),
+                                  _cameraController!.value.previewSize!.height.toDouble(),
+                                ),
                               ),
                             ),
                           ),
@@ -146,7 +148,7 @@ class _DetectorPageState extends State<DetectorPage> {
                             ),
                           ),
                         // Detection count badge
-                        if (detections.isNotEmpty && !isPaused)
+                        if (!isPaused)
                           Positioned(
                             top: 12,
                             left: 12,
@@ -158,12 +160,32 @@ class _DetectorPageState extends State<DetectorPage> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                '${detections.length} object${detections.length > 1 ? 's' : ''} detected',
+                                detections.isEmpty 
+                                  ? 'Scanning...' 
+                                  : '${detections.length} detected',
                                 style: const TextStyle(
                                     color: Colors.white, fontSize: 13),
                               ),
                             ),
                           ),
+                        // Debug info
+                        Positioned(
+                          bottom: 12,
+                          left: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Ready: ${_cameraReady ? 'Yes' : 'No'}\nDetections: ${detections.length}',
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 10),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
