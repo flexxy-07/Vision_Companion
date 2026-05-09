@@ -11,6 +11,8 @@ class BoundingBoxPainter extends CustomPainter{
   void paint(Canvas canvas, Size size){
     if (detections.isEmpty) return;
     
+
+    
     for(final det in detections){
       // Skip only the "Inference Active" heartbeat boxes
       if (det.label == 'Inference Active') continue;

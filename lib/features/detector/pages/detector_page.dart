@@ -46,7 +46,7 @@ class _DetectorPageState extends State<DetectorPage> {
     setState(() => _cameraReady = true);
 
     // Load model then start stream
-    final cubit = context.read<DetectorCubit>();
+    final cubit = getIt<DetectorCubit>();
     await cubit.loadModel();
 
     _cameraController!.startImageStream((image) {
@@ -104,6 +104,8 @@ class _DetectorPageState extends State<DetectorPage> {
               final isPaused = state is DetectorPaused;
               final detections =
                   state is DetectorResults ? state.detections : <Detection>[];
+              
+
 
               return Column(
                 children: [
