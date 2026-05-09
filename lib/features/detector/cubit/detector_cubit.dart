@@ -164,6 +164,11 @@ class DetectorCubit extends Cubit<DetectorState> {
       // Get actual output tensor info
       final outputTensors = interpreter.getOutputTensors();
       
+      print('🔍 OUTPUT TENSORS: count=${outputTensors.length}');
+      for (int i = 0; i < outputTensors.length; i++) {
+        print('  Tensor[$i]: shape=${outputTensors[i].shape}, type=${outputTensors[i].type}');
+      }
+      
       // Try to find correct tensor indices based on shape
       int boxesIdx = -1, classesIdx = -1, scoresIdx = -1, countIdx = -1;
       
