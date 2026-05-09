@@ -25,7 +25,6 @@ class BoundingBoxPainter extends CustomPainter{
       canvas.drawRect(rect, paint);
 
       final bgPaint = Paint()
-      // ignore: deprecated_member_use
       ..color = det.categoryColor.withOpacity(0.85)
       ..style = PaintingStyle.fill;
 

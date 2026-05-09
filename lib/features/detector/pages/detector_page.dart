@@ -66,7 +66,6 @@ class _DetectorPageState extends State<DetectorPage> {
       final top = detections.first.label;
       if (top != _lastAnnounced) {
         _lastAnnounced = top;
-        // ignore: deprecated_member_use
         SemanticsService.announce(
           'Detected: $top ${detections.first.confidencePercent}',
           TextDirection.ltr,
@@ -129,8 +128,8 @@ class _DetectorPageState extends State<DetectorPage> {
                             painter: BoundingBoxPainter(
                               detections,
                               Size(
-                                _cameraController!.value.previewSize!.height,
                                 _cameraController!.value.previewSize!.width,
+                                _cameraController!.value.previewSize!.height,
                               ),
                             ),
                           ),

@@ -1,4 +1,5 @@
 import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:equatable/equatable.dart';
@@ -19,7 +20,7 @@ class DetectorCubit extends Cubit<DetectorState> {
   bool _isPaused = false;
   bool _isProcessing = false;
 
-  static const double _confidenceThreshold = 0.3;
+  static const double _confidenceThreshold = 0.5;
   static const int _inputSize = 300;
 
   DetectorCubit(this._historyRepo) : super(DetectorIdle());
@@ -82,7 +83,6 @@ class DetectorCubit extends Cubit<DetectorState> {
         emit(DetectorRunning());
       }
     } catch (e, st) {
-      // ignore: avoid_print
       print('Inference error: $e\n$st');
       // Show the exact error on screen as a fake bounding box!
       emit(DetectorResults([
@@ -150,102 +150,109 @@ class DetectorCubit extends Cubit<DetectorState> {
 
       final interpreter = Interpreter.fromAddress(data.interpreterAddress);
 
-      // Input tensor: [1, 300, 300, 3] - normalized to 0-1 range
+      // Input tensor: [1, 300, 300, 3] uint8
       final input = inputBytes.reshape([1, _inputSize, _inputSize, 3]);
 
-      // SSD MobileNet v1 outputs:
-      // output0: boxes [1, 1, 100, 4]
-      // output1: classes [1, 1, 100, 91] 
-      // output2: scores [1, 1, 100]
-      // output3: count [1]
+      // Get actual output tensor info
+      final outputTensors = interpreter.getOutputTensors();
       
-      final boxesTensor = List<double>.filled(1 * 1 * 100 * 4, 0.0).reshape([1, 1, 100, 4]);
-      final classesTensor = List<double>.filled(1 * 1 * 100 * 91, 0.0).reshape([1, 1, 100, 91]);
-      final scoresTensor = List<double>.filled(1 * 1 * 100, 0.0).reshape([1, 1, 100]);
-      final countTensor = List<double>.filled(1, 0.0).reshape([1]);
-
-      final outputs = <int, Object>{
-        0: boxesTensor,
-        1: classesTensor,
-        2: scoresTensor,
-        3: countTensor,
-      };
+      // Try to find correct tensor indices based on shape
+      int boxesIdx = -1, classesIdx = -1, scoresIdx = -1, countIdx = -1;
+      
+      for (int i = 0; i < outputTensors.length; i++) {
+        final shape = outputTensors[i].shape;
+        
+        if (shape.length == 1 && shape[0] == 1) {
+          countIdx = i;
+        } else if (shape.length == 3 && shape[2] == 4) {
+          // [1, N, 4] - boxes
+          boxesIdx = i;
+        } else if (shape.length == 2) {
+          // [1, N] - could be scores or classes
+          if (scoresIdx == -1) {
+            scoresIdx = i;
+          } else if (classesIdx == -1) {
+            classesIdx = i;
+          }
+        }
+      }
+      
+      // Fallback with larger capacity for SSD MobileNet v1
+      if (countIdx == -1) countIdx = 3;
+      if (boxesIdx == -1) boxesIdx = 0;
+      if (scoresIdx == -1) scoresIdx = 2;
+      if (classesIdx == -1) classesIdx = 1;
+      
+      // Create output tensors with appropriate sizes
+      final outputs = <int, Object>{};
+      
+      final boxesShape = [1, 100, 4];
+      final scoresShape = [1, 100];
+      final classesShape = [1, 100];
+      final countShape = [1];
+      
+      outputs[boxesIdx] = List<double>.filled(1 * 100 * 4, 0.0).reshape(boxesShape);
+      outputs[scoresIdx] = List<double>.filled(1 * 100, 0.0).reshape(scoresShape);
+      outputs[classesIdx] = List<double>.filled(1 * 100, 0.0).reshape(classesShape);
+      outputs[countIdx] = List<double>.filled(1, 0.0).reshape(countShape);
 
       interpreter.runForMultipleInputs([input], outputs);
 
-      final detections = <Map<String, dynamic>>[];
+      final countArray = outputs[countIdx] as List<dynamic>;
+      final count = (countArray[0] as double).toInt().clamp(0, 100);
       
-      try {
-        // Extract detections from outputs
-        final boxes = outputs[0] as List<dynamic>;
-        final classes = outputs[1] as List<dynamic>;
-        final scores = outputs[2] as List<dynamic>;
-        final count = ((outputs[3] as List<dynamic>)[0] as double).toInt().clamp(0, 100);
+      final boxesArray = outputs[boxesIdx] as List<dynamic>;
+      final scoresArray = outputs[scoresIdx] as List<dynamic>;
+      final classesArray = outputs[classesIdx] as List<dynamic>;
+      
+      final boxesBatch = boxesArray[0] as List<dynamic>;
+      final scoresBatch = scoresArray[0] as List<dynamic>;
+      final classesBatch = classesArray[0] as List<dynamic>;
+      
+      final List<Map<String, dynamic>> detections = [];
 
-        // Extract the first batch and first anchor
-        final boxesBatch = boxes[0] as List<dynamic>;
-        final classesBatch = classes[0] as List<dynamic>;
-        final scoresBatch = scores[0] as List<dynamic>;
+      for (int i = 0; i < count; i++) {
+        final score = (scoresBatch[i] as double).clamp(0.0, 1.0);
+        
+        // Skip low confidence
+        if (score < data.confidenceThreshold) continue;
 
-        for (int i = 0; i < count; i++) {
-          final score = scoresBatch[i] as double;
-          
-          // Skip low confidence detections
-          if (score < data.confidenceThreshold) continue;
+        final classIdx = (classesBatch[i] as double).toInt().clamp(0, data.labels.length - 1);
+        final label = classIdx < data.labels.length ? data.labels[classIdx] : 'Unknown';
 
-          // Get the class with highest confidence for this detection
-          final classScores = classesBatch[i] as List<dynamic>;
-          int maxClassIdx = 0;
-          double maxClassScore = 0.0;
-          
-          for (int j = 0; j < classScores.length && j < data.labels.length; j++) {
-            final classScore = classScores[j] as double;
-            if (classScore > maxClassScore) {
-              maxClassScore = classScore;
-              maxClassIdx = j;
-            }
-          }
+        final box = boxesBatch[i] as List<dynamic>;
+        final top = (box[0] as double).clamp(0.0, 1.0);
+        final left = (box[1] as double).clamp(0.0, 1.0);
+        final bottom = (box[2] as double).clamp(0.0, 1.0);
+        final right = (box[3] as double).clamp(0.0, 1.0);
 
-          final label = maxClassIdx < data.labels.length 
-              ? data.labels[maxClassIdx]
-              : 'Unknown';
-
-          final box = boxesBatch[i] as List<dynamic>;
-          final top = (box[0] as double).clamp(0.0, 1.0);
-          final left = (box[1] as double).clamp(0.0, 1.0);
-          final bottom = (box[2] as double).clamp(0.0, 1.0);
-          final right = (box[3] as double).clamp(0.0, 1.0);
-
-          // Only add valid boxes
-          if (right > left && bottom > top) {
-            detections.add({
-              'label': label,
-              'confidence': score,
-              'left': left,
-              'top': top,
-              'right': right,
-              'bottom': bottom,
-            });
-          }
+        // Validate box
+        if (right > left && bottom > top && (right - left) > 0.01 && (bottom - top) > 0.01) {
+          detections.add({
+            'label': label,
+            'confidence': score,
+            'left': left,
+            'top': top,
+            'right': right,
+            'bottom': bottom,
+          });
         }
-      } catch (parseErr) {
-        // If parsing fails, send the error
-        data.sendPort.send({'error': 'Parse error: $parseErr'});
-        return;
       }
 
       // Sort by confidence
       detections.sort((a, b) => (b['confidence'] as double).compareTo(a['confidence'] as double));
 
-      // Add a debug heartbeat box so we know inference is running
-      detections.add({
-        'label': 'Inference Active',
-        'confidence': 1.0,
-        'left': 0.0,
-        'top': 0.0,
-        'right': 0.3,
-        'bottom': 0.1,
-      });
+      // Add heartbeat only if we have real detections
+      if (detections.isNotEmpty) {
+        detections.add({
+          'label': 'Inference Active',
+          'confidence': 1.0,
+          'left': 0.0,
+          'top': 0.0,
+          'right': 0.3,
+          'bottom': 0.1,
+        });
+      }
 
       data.sendPort.send(detections);
     } catch (e, st) {
@@ -261,16 +268,15 @@ class DetectorCubit extends Cubit<DetectorState> {
     // Resize to 300x300
     final resized = img.copyResize(imgLib, width: _inputSize, height: _inputSize);
 
-    // Convert to bytes [300, 300, 3] with normalization to 0-1 range
+    // Convert to bytes [300, 300, 3]
     final bytes = Uint8List(_inputSize * _inputSize * 3);
     int idx = 0;
     for (int y = 0; y < _inputSize; y++) {
       for (int x = 0; x < _inputSize; x++) {
         final pixel = resized.getPixel(x, y);
-        // Store as uint8 (0-255), model will handle normalization
-        bytes[idx++] = pixel.r.toInt().clamp(0, 255);
-        bytes[idx++] = pixel.g.toInt().clamp(0, 255);
-        bytes[idx++] = pixel.b.toInt().clamp(0, 255);
+        bytes[idx++] = pixel.r.toInt();
+        bytes[idx++] = pixel.g.toInt();
+        bytes[idx++] = pixel.b.toInt();
       }
     }
     return bytes;
