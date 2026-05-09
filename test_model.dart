@@ -1,0 +1,1 @@
+import 'dart:io'; import 'package:flutter_test/flutter_test.dart'; import 'package:tflite_flutter/tflite_flutter.dart'; void main() { test('t', () async { final i = Interpreter.fromFile(File('assets/models/ssd_mobilenet_v1.tflite')); print(i.getInputTensors()); print(i.getOutputTensors()); }); }

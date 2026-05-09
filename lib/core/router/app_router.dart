@@ -4,6 +4,7 @@ import 'package:vision_companion/features/auth/cubit/auth_cubit.dart';
 import 'package:vision_companion/features/auth/cubit/auth_state.dart';
 import 'package:vision_companion/features/auth/pages/login_page.dart';
 import 'package:vision_companion/features/auth/pages/signup_page.dart';
+import 'package:vision_companion/features/detector/pages/detector_page.dart';
 import 'package:vision_companion/features/history/pages/history_page.dart';
 import 'package:vision_companion/features/home/pages/home_page.dart';
 
@@ -28,6 +29,7 @@ class AppRouter {
         GoRoute(path: '/signup', builder: (_, __) => const SignupPage()),
         GoRoute(path: '/home', builder: (_, __) => const HomePage()),
         GoRoute(path: '/history', builder: (_, __) => const HistoryPage()),
+        GoRoute(path: '/detector', builder: (_, __) => const DetectorPage()),
       ],
     );
   }

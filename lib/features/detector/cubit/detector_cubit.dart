@@ -20,7 +20,7 @@ class DetectorCubit extends Cubit<DetectorState> {
   bool _isPaused = false;
   bool _isProcessing = false;
 
-  static const double _confidenceThreshold = 0.5;
+  static const double _confidenceThreshold = 0.2;
   static const int _inputSize = 300;
 
   DetectorCubit(this._historyRepo) : super(DetectorIdle());
@@ -209,6 +209,8 @@ class DetectorCubit extends Cubit<DetectorState> {
       final countArray = outputs[countIdx] as List<dynamic>;
       final count = (countArray[0] as double).toInt().clamp(0, 100);
       
+      print('🔍 DETECTOR: count=$count, boxesIdx=$boxesIdx, scoresIdx=$scoresIdx, classesIdx=$classesIdx, countIdx=$countIdx');
+      
       final boxesArray = outputs[boxesIdx] as List<dynamic>;
       final scoresArray = outputs[scoresIdx] as List<dynamic>;
       final classesArray = outputs[classesIdx] as List<dynamic>;
@@ -221,6 +223,10 @@ class DetectorCubit extends Cubit<DetectorState> {
 
       for (int i = 0; i < count; i++) {
         final score = (scoresBatch[i] as double).clamp(0.0, 1.0);
+        
+        if (i < 5) {
+          print('  Score[$i]: $score');
+        }
         
         // Skip low confidence
         if (score < data.confidenceThreshold) continue;
