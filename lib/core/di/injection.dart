@@ -11,8 +11,8 @@ Future<void> setupDI() async {
   getIt.registerLazySingleton<AuthRepository>(() => AuthRepository());
   getIt.registerLazySingleton<HistoryRepository>(() => HistoryRepository());
 
-  getIt.registerFactory<AuthCubit>(() => AuthCubit(getIt<AuthRepository>()));
-  getIt.registerFactory<DetectorCubit>(
+  getIt.registerLazySingleton<AuthCubit>(() => AuthCubit(getIt<AuthRepository>()));
+  getIt.registerLazySingleton<DetectorCubit>(
     () => DetectorCubit(getIt<HistoryRepository>())
   );
 }
