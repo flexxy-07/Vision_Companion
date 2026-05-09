@@ -20,6 +20,7 @@ class DetectorCubit extends Cubit<DetectorState> {
   bool _isPaused = false;
   bool _isProcessing = false;
   CameraImage? _latestImage;  // Track latest frame
+  DateTime? _lastHistorySave; // Throttle history saving
 
   static const double _confidenceThreshold = 0.2;
   static const int _inputSize = 300;
@@ -50,7 +51,15 @@ class DetectorCubit extends Cubit<DetectorState> {
 
   void togglePause() {
     _isPaused = !_isPaused;
-    emit(_isPaused ? DetectorPaused() : DetectorRunning());
+    if (!isClosed) {
+      emit(_isPaused ? DetectorPaused() : DetectorRunning());
+    }
+  }
+  
+  void _safeEmit(DetectorState state) {
+    if (!isClosed) {
+      emit(state);
+    }
   }
 
   Future<void> runInference(CameraImage image) async {
@@ -63,7 +72,7 @@ class DetectorCubit extends Cubit<DetectorState> {
     if (_isProcessing) return;
     
     if (_interpreter == null) {
-      emit(DetectorResults([
+      _safeEmit(DetectorResults([
         Detection(
           label: 'ERR: Interpreter is null! Did you restart the app?',
           confidence: 1.0,
@@ -78,32 +87,48 @@ class DetectorCubit extends Cubit<DetectorState> {
     try {
       // Keep processing latest frames until caught up
       while (_latestImage != null) {
+        if (_isPaused) {
+          _latestImage = null;
+          break;
+        }
+        
         final currentImage = _latestImage;
         _latestImage = null;  // Mark as processed
         
         final results = await _runInIsolate(currentImage!);
         
+        if (_isPaused) break; // Check again after isolate completes
+        
         // Always emit results to keep UI updating
         if (results.isNotEmpty) {
-          emit(DetectorResults(results));
+          _safeEmit(DetectorResults(results));
           
           // Don't save heartbeat to history
           final actualDetections = results.where((d) => d.label != 'Inference Active').toList();
-          if (actualDetections.isNotEmpty) {
-            await _historyRepo.saveHistory(
+          
+          // Throttle saving to history (e.g. once every 3 seconds) to prevent Firestore hangs/spam
+          final now = DateTime.now();
+          if (actualDetections.isNotEmpty && 
+              (_lastHistorySave == null || now.difference(_lastHistorySave!).inSeconds >= 3)) {
+            _lastHistorySave = now;
+            
+            // Fire-and-forget so we don't block the next frame!
+            _historyRepo.saveHistory(
               featureType: 'object_detection',
               resultSummary: actualDetections.map((d) => d.label).take(3).join(', '),
-            );
+            ).catchError((e) {
+              print('History save error: $e');
+            });
           }
         } else {
           // Emit empty results to clear old detections
-          emit(DetectorResults([]));
+          _safeEmit(DetectorResults([]));
         }
       }
     } catch (e, st) {
       print('Inference error: $e\n$st');
       // Show the exact error on screen
-      emit(DetectorResults([
+      _safeEmit(DetectorResults([
         Detection(
           label: 'ERROR: ${e.toString().replaceAll('\n', ' ')}',
           confidence: 1.0,
@@ -139,6 +164,8 @@ class DetectorCubit extends Cubit<DetectorState> {
     );
 
     final result = await receivePort.first;
+    receivePort.close();
+    
     if (result is Map && result.containsKey('error')) {
       throw Exception(result['error']);
     }
@@ -225,16 +252,30 @@ class DetectorCubit extends Cubit<DetectorState> {
       final countArray = outputs[countIdx] as List<dynamic>;
       final count = (countArray[0] as double).toInt().clamp(0, 10);
       
-
-      
       final boxesArray = outputs[boxesIdx] as List<dynamic>;
       final scoresArray = outputs[scoresIdx] as List<dynamic>;
       final classesArray = outputs[classesIdx] as List<dynamic>;
       
       final boxesBatch = boxesArray[0] as List<dynamic>;
-      final scoresBatch = scoresArray[0] as List<dynamic>;
-      final classesBatch = classesArray[0] as List<dynamic>;
+      List<dynamic> scoresBatch = scoresArray[0] as List<dynamic>;
+      List<dynamic> classesBatch = classesArray[0] as List<dynamic>;
       
+      // Heuristic: If classes output has fractional values anywhere, it's actually scores!
+      bool classesHasFractional = false;
+      for (final val in classesBatch) {
+        if (val is double && val != val.roundToDouble()) {
+          classesHasFractional = true;
+          break;
+        }
+      }
+      
+      if (classesHasFractional) {
+         // Swap them.
+         final temp = classesBatch;
+         classesBatch = scoresBatch;
+         scoresBatch = temp;
+      }
+
       final List<Map<String, dynamic>> detections = [];
 
       for (int i = 0; i < count; i++) {
@@ -295,8 +336,11 @@ class DetectorCubit extends Cubit<DetectorState> {
     // Convert YUV420 to RGB image
     final imgLib = _convertYUV420Planes(planesData, width, height);
 
+    // Rotate 90 degrees clockwise (Android portrait mode)
+    final rotated = img.copyRotate(imgLib, angle: 90);
+
     // Resize to 300x300
-    final resized = img.copyResize(imgLib, width: _inputSize, height: _inputSize);
+    final resized = img.copyResize(rotated, width: _inputSize, height: _inputSize);
 
     // Convert to bytes [300, 300, 3]
     final bytes = Uint8List(_inputSize * _inputSize * 3);

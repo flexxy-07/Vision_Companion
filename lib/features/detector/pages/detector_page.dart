@@ -84,8 +84,8 @@ class _DetectorPageState extends State<DetectorPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<DetectorCubit>(),
+    return BlocProvider.value(
+      value: getIt<DetectorCubit>(),
       child: Builder(builder: (context) {
         return Scaffold(
           backgroundColor: Colors.black,
