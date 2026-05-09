@@ -27,5 +27,5 @@ class Detection {
   }
 
   String get confidencePercent =>
-      '${(confidence * 100).toStringAsPrecision(0)}%';
+      '${(confidence * 100).toStringAsFixed(0)}%';
 }
