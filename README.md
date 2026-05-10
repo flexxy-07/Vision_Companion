@@ -56,7 +56,7 @@ flutter build apk --release
 ```
 
 ## APK Download
-[Download latest APK](https://github.com/YOUR_USERNAME/vision_companion/releases/latest)
+[Download latest APK]([https://github.com/YOUR_USERNAME/vision_companion/releases/latest](https://github.com/flexxy-07/Vision_Companion/releases/download/App/VisionCompanion.apk))
 
 ## Documentation
 See [docs/documentation.md](docs/documentation.md)
