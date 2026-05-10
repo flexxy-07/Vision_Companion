@@ -13,10 +13,10 @@ class AnalyzerCubit extends Cubit<AnalyzerState>{
 
   AnalyzerCubit(this._repo, this._historyRepo) : super(AnalyzerIdle());
 
-  Future<void> analyzeImage(File imageFile) async {
+  Future<void> analyzeImage(File imageFile, String language) async {
     emit(AnalyzerProcessing());
     try {
-      final result = await _repo.analyzeImage(imageFile);
+      final result = await _repo.analyzeImage(imageFile, language);
       await _historyRepo.saveHistory(featureType: 'image_analysis', resultSummary: result.summarForHistory);
       emit(AnalyzerResult(result));
     }on SocketException {

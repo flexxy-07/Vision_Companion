@@ -10,7 +10,7 @@ class AnalyzerRepository {
   static const _endpoint =
       'https://api.groq.com/openai/v1/chat/completions';
 
-  Future<AnalysisData> analyzeImage(File imageFile) async {
+  Future<AnalysisData> analyzeImage(File imageFile, String language) async {
     final apiKey = dotenv.env['GROQ_API_KEY'] ?? '';
     if (apiKey.isEmpty) throw Exception('GROQ_API_KEY not set in .env');
 
@@ -39,7 +39,8 @@ class AnalyzerRepository {
                   },
                   {
                     'type': 'text',
-                    'text': '''Analyze this image and return ONLY a JSON object with no extra text:
+                    'text': '''Analyze this image and return ONLY a JSON object with no extra text. 
+IMPORTANT: The "description" and "label" fields MUST be in ${language == 'hi' ? 'Hindi' : 'English'}.
 {
   "description": "brief overall description",
   "tags": [{"label": "object name", "confidence": 95}],

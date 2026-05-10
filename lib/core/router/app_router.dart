@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vision_companion/features/analyzer/pages/analyzer_page.dart';
@@ -14,6 +15,9 @@ class AppRouter {
   static GoRouter router(AuthCubit authCubit) {
     return GoRouter(
       initialLocation: '/login',
+      observers: [
+        FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+      ],
       refreshListenable: GoRouterRefreshStream(authCubit.stream),
       redirect: (context, state) {
         final isAuthenticated = authCubit.state is AuthAuthenticated;

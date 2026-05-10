@@ -3,8 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vision_companion/features/auth/cubit/auth_state.dart';
 import 'package:vision_companion/l10n/app_localizations.dart';
-
 import '../cubit/auth_cubit.dart';
+import '../widgets/auth_widgets.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -43,137 +43,159 @@ class _SignupPageState extends State<SignupPage> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.signUpTitle),
-        leading: Semantics(
-          label: l10n.goBack,
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => context.pop(),
-          ),
-        ),
-      ),
-      body: BlocConsumer<AuthCubit, AuthState>(
-        listener: (context, state) {
-          if (state is AuthAuthenticated) context.go('/home');
-          if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: theme.colorScheme.error,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: theme.colorScheme.surface,
+      body: SafeArea(
+        child: BlocConsumer<AuthCubit, AuthState>(
+          listener: (context, state) {
+            if (state is AuthAuthenticated) context.go('/home');
+            if (state is AuthError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: theme.colorScheme.error,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          },
+          builder: (context, state) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: Column(
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                      onPressed: () => context.pop(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        width: 1,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.center_focus_strong_rounded,
+                      size: 36,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.signUpTitle,
+                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 40),
+                  
+                  GlassCard(
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            l10n.joinVisionCompanion,
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 32),
+                          
+                          // Name
+                          TextFormField(
+                            controller: _nameCtrl,
+                            decoration: InputDecoration(
+                              labelText: l10n.nameLabel,
+                              prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+                              ),
+                            ),
+                            validator: (v) =>
+                                v == null || v.trim().isEmpty ? l10n.enterYourName : null,
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // Email
+                          TextFormField(
+                            controller: _emailCtrl,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: InputDecoration(
+                              labelText: l10n.emailAddress,
+                              prefixIcon: const Icon(Icons.email_outlined, size: 20),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+                              ),
+                            ),
+                            validator: (v) => v == null || !v.contains('@')
+                                ? l10n.enterValidEmail
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // Password
+                          TextFormField(
+                            controller: _passwordCtrl,
+                            obscureText: _obscure,
+                            decoration: InputDecoration(
+                              labelText: l10n.passwordLabel,
+                              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+                              ),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                  size: 20,
+                                ),
+                                onPressed: () => setState(() => _obscure = !_obscure),
+                              ),
+                            ),
+                            validator: (v) =>
+                                v == null || v.length < 6 ? l10n.minCharacters : null,
+                          ),
+                          const SizedBox(height: 32),
+                          
+                          ElevatedButton(
+                            onPressed: state is AuthLoading ? null : _submit,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 54),
+                              backgroundColor: theme.colorScheme.primary,
+                              foregroundColor: theme.colorScheme.onPrimary,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            child: state is AuthLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : Text(l10n.signUpButton, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  TextButton(
+                    onPressed: () => context.go('/login'),
+                    child: Text(l10n.haveAccount),
+                  ),
+                ],
               ),
             );
-          }
-        },
-        builder: (context, state) {
-          return SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      l10n.joinVisionCompanion,
-                      style: theme.textTheme.headlineMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.setupPremium,
-                      style: theme.textTheme.bodyLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 48),
-                    Semantics(
-                      label: l10n.fullNameInputLabel,
-                      child: TextFormField(
-                        controller: _nameCtrl,
-                        textInputAction: TextInputAction.next,
-                        decoration: InputDecoration(
-                          labelText: l10n.nameLabel,
-                          prefixIcon: const Icon(Icons.person_outline_rounded),
-                        ),
-                        validator: (v) =>
-                            v == null || v.trim().isEmpty ? l10n.enterYourName : null,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Semantics(
-                      label: l10n.emailInputLabel,
-                      child: TextFormField(
-                        controller: _emailCtrl,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        decoration: InputDecoration(
-                          labelText: l10n.emailAddress,
-                          prefixIcon: const Icon(Icons.email_outlined),
-                        ),
-                        validator: (v) => v == null || !v.contains('@')
-                            ? l10n.enterValidEmail
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Semantics(
-                      label: l10n.passwordInputLabel,
-                      child: TextFormField(
-                        controller: _passwordCtrl,
-                        obscureText: _obscure,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => _submit(),
-                        decoration: InputDecoration(
-                          labelText: l10n.passwordLabel,
-                          prefixIcon: const Icon(Icons.lock_outline_rounded),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            ),
-                            onPressed: () => setState(() => _obscure = !_obscure),
-                            tooltip: _obscure ? l10n.showPassword : l10n.hidePassword,
-                          ),
-                        ),
-                        validator: (v) =>
-                            v == null || v.length < 6 ? l10n.minCharacters : null,
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                    Semantics(
-                      button: true,
-                      label: l10n.signUpButtonLabel,
-                      child: ElevatedButton(
-                        onPressed: state is AuthLoading ? null : _submit,
-                        child: state is AuthLoading
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(strokeWidth: 2.5),
-                              )
-                            : Text(l10n.signUpButton),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Semantics(
-                      button: true,
-                      label: l10n.navigateToSignInLabel,
-                      child: TextButton(
-                        onPressed: () => context.go('/login'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: theme.colorScheme.primary,
-                          textStyle: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        child: Text(l10n.haveAccount),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
+          },
+        ),
       ),
     );
   }

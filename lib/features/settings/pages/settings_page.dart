@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:vision_companion/features/settings/cubit/settings_cubit.dart';
 import 'package:vision_companion/l10n/app_localizations.dart';
-
-import '../cubit/settings_cubit.dart';
+import '../../../core/di/injection.dart';
+import '../../../core/services/tts_service.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -74,7 +74,9 @@ class SettingsPage extends StatelessWidget {
       BuildContext context, String code, AppLocalizations l10n) {
     context.read<SettingsCubit>().setLocale(Locale(code));
     final langName = code == 'en' ? l10n.english : l10n.hindi;
-    SemanticsService.sendAnnouncement(
-        View.of(context), l10n.selectedLanguage(langName), TextDirection.ltr);
+    getIt<TtsService>().speak(
+      l10n.selectedLanguage(langName),
+      code, // Use the new code immediately
+    );
   }
 }

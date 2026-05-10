@@ -8,6 +8,7 @@ import 'package:vision_companion/features/settings/cubit/settings_cubit.dart';
 
 import '../../features/auth/cubit/auth_cubit.dart';
 import '../../features/auth/repository/auth_repository.dart';
+import '../services/tts_service.dart';
 
 final getIt = GetIt.instance;
 
@@ -18,6 +19,7 @@ Future<void> setupDI() async {
   getIt.registerLazySingleton<AuthRepository>(() => AuthRepository());
   getIt.registerLazySingleton<HistoryRepository>(() => HistoryRepository());
   getIt.registerLazySingleton<AnalyzerRepository>(() => AnalyzerRepository());
+  getIt.registerLazySingleton<TtsService>(() => TtsService());
 
 
 

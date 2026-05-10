@@ -25,9 +25,10 @@ class DetectorCubit extends Cubit<DetectorState> {
   static const double _confidenceThreshold = 0.2;
   static const int _inputSize = 300;
 
-  DetectorCubit(this._historyRepo) : super(DetectorIdle());
+  DetectorCubit(this._historyRepo) : super(const DetectorState());
 
   Future<void> loadModel() async {
+    emit(state.copyWith(isLoading: true));
     try {
       _interpreter = await Interpreter.fromAsset(
           'assets/models/ssd_mobilenet_v1.tflite');
@@ -42,25 +43,18 @@ class DetectorCubit extends Cubit<DetectorState> {
           .toList();
 
 
-      emit(DetectorRunning());
+      emit(state.copyWith(isLoading: false));
     } catch (e) {
 
-      emit(DetectorError('Failed to load model: $e'));
+      emit(state.copyWith(isLoading: false, error: 'Failed to load model: $e'));
     }
   }
 
   void togglePause() {
     _isPaused = !_isPaused;
-    if (!isClosed) {
-      emit(_isPaused ? DetectorPaused() : DetectorRunning());
-    }
+    emit(state.copyWith(isPaused: _isPaused));
   }
   
-  void _safeEmit(DetectorState state) {
-    if (!isClosed) {
-      emit(state);
-    }
-  }
 
   Future<void> runInference(CameraImage image) async {
     if (_isPaused) return;
@@ -72,13 +66,15 @@ class DetectorCubit extends Cubit<DetectorState> {
     if (_isProcessing) return;
     
     if (_interpreter == null) {
-      _safeEmit(DetectorResults([
-        Detection(
-          label: 'ERR: Interpreter is null! Did you restart the app?',
-          confidence: 1.0,
-          boundingBox: const Rect.fromLTRB(0.1, 0.4, 0.9, 0.6),
-        )
-      ]));
+      emit(state.copyWith(
+        detections: [
+          Detection(
+            label: 'ERR: Interpreter is null! Did you restart the app?',
+            confidence: 1.0,
+            boundingBox: const Rect.fromLTRB(0.1, 0.4, 0.9, 0.6),
+          )
+        ],
+      ));
       return;
     }
     
@@ -99,9 +95,10 @@ class DetectorCubit extends Cubit<DetectorState> {
         
         if (_isPaused) break; // Check again after isolate completes
         
-        // Always emit results to keep UI updating
         if (results.isNotEmpty) {
-          _safeEmit(DetectorResults(results));
+          if (!state.isPaused) {
+            emit(state.copyWith(detections: results));
+          }
           
           // Don't save heartbeat to history
           final actualDetections = results.where((d) => d.label != 'Inference Active').toList();
@@ -121,20 +118,23 @@ class DetectorCubit extends Cubit<DetectorState> {
             });
           }
         } else {
-          // Emit empty results to clear old detections
-          _safeEmit(DetectorResults([]));
+          if (!state.isPaused) {
+            emit(state.copyWith(detections: []));
+          }
         }
       }
     } catch (e, st) {
       print('Inference error: $e\n$st');
       // Show the exact error on screen
-      _safeEmit(DetectorResults([
-        Detection(
-          label: 'ERROR: ${e.toString().replaceAll('\n', ' ')}',
-          confidence: 1.0,
-          boundingBox: const Rect.fromLTRB(0.05, 0.4, 0.95, 0.6),
-        )
-      ]));
+      emit(state.copyWith(
+        detections: [
+          Detection(
+            label: 'ERROR: ${e.toString().replaceAll('\n', ' ')}',
+            confidence: 1.0,
+            boundingBox: const Rect.fromLTRB(0.05, 0.4, 0.95, 0.6),
+          )
+        ],
+      ));
     } finally {
       _isProcessing = false;
     }
@@ -199,97 +199,123 @@ class DetectorCubit extends Cubit<DetectorState> {
 
       final interpreter = Interpreter.fromAddress(data.interpreterAddress);
 
-      // Input tensor: [1, 300, 300, 3] uint8
-      final input = inputBytes.reshape([1, _inputSize, _inputSize, 3]);
-
-      // Get actual output tensor info
-      final outputTensors = interpreter.getOutputTensors();
+      final inputTensors = interpreter.getInputTensors();
+      final inputType = inputTensors[0].type;
       
-
-      
-      // Try to find correct tensor indices based on shape
-      int boxesIdx = -1, classesIdx = -1, scoresIdx = -1, countIdx = -1;
-      
-      for (int i = 0; i < outputTensors.length; i++) {
-        final shape = outputTensors[i].shape;
-        
-        if (shape.length == 1 && shape[0] == 1) {
-          countIdx = i;
-        } else if (shape.length == 3 && shape[2] == 4) {
-          // [1, N, 4] - boxes
-          boxesIdx = i;
-        } else if (shape.length == 2) {
-          // [1, N] - could be scores or classes
-          if (scoresIdx == -1) {
-            scoresIdx = i;
-          } else if (classesIdx == -1) {
-            classesIdx = i;
-          }
+      Object input;
+      if (inputType.toString().contains('float32')) {
+        // Normalize to [-1, 1] for common float SSD models
+        final floatInput = Float32List(_inputSize * _inputSize * 3);
+        for (int i = 0; i < inputBytes.length; i++) {
+          floatInput[i] = (inputBytes[i] - 127.5) / 127.5;
         }
+        input = floatInput.reshape([1, _inputSize, _inputSize, 3]);
+      } else {
+        input = inputBytes.reshape([1, _inputSize, _inputSize, 3]);
       }
-      
-      // Fallback with larger capacity for SSD MobileNet v1
-      if (countIdx == -1) countIdx = 3;
-      if (boxesIdx == -1) boxesIdx = 0;
-      if (scoresIdx == -1) scoresIdx = 2;
-      if (classesIdx == -1) classesIdx = 1;
-      
-      // Create output tensors with appropriate sizes
+
+      // Get output tensor info
+      final outputTensors = interpreter.getOutputTensors();
       final outputs = <int, Object>{};
       
-      final boxesShape = [1, 10, 4];
-      final scoresShape = [1, 10];
-      final classesShape = [1, 10];
-      final countShape = [1];
-      
-      outputs[boxesIdx] = List<double>.filled(1 * 10 * 4, 0.0).reshape(boxesShape);
-      outputs[scoresIdx] = List<double>.filled(1 * 10, 0.0).reshape(scoresShape);
-      outputs[classesIdx] = List<double>.filled(1 * 10, 0.0).reshape(classesShape);
-      outputs[countIdx] = List<double>.filled(1, 0.0).reshape(countShape);
+      // Dynamically prepare output buffers based on model's actual shapes
+      for (int i = 0; i < outputTensors.length; i++) {
+        final shape = outputTensors[i].shape;
+        if (outputTensors[i].type.toString().contains('float32')) {
+          outputs[i] = List<double>.filled(shape.reduce((a, b) => a * b), 0.0).reshape(shape);
+        } else {
+          // Some models use int32 or uint8 for classes/count
+          outputs[i] = List<int>.filled(shape.reduce((a, b) => a * b), 0).reshape(shape);
+        }
+      }
 
       interpreter.runForMultipleInputs([input], outputs);
 
-      final countArray = outputs[countIdx] as List<dynamic>;
-      final count = (countArray[0] as double).toInt().clamp(0, 10);
-      
-      final boxesArray = outputs[boxesIdx] as List<dynamic>;
-      final scoresArray = outputs[scoresIdx] as List<dynamic>;
-      final classesArray = outputs[classesIdx] as List<dynamic>;
-      
-      final boxesBatch = boxesArray[0] as List<dynamic>;
-      List<dynamic> scoresBatch = scoresArray[0] as List<dynamic>;
-      List<dynamic> classesBatch = classesArray[0] as List<dynamic>;
-      
-      // Heuristic: If classes output has fractional values anywhere, it's actually scores!
-      bool classesHasFractional = false;
-      for (final val in classesBatch) {
-        if (val is double && val != val.roundToDouble()) {
-          classesHasFractional = true;
-          break;
+      // Discovery: identify which output is which by shape and values
+      List<dynamic>? boxes;
+      List<dynamic>? scores;
+      List<dynamic>? classes;
+      int count = 0;
+
+      for (int i = 0; i < outputTensors.length; i++) {
+        final shape = outputTensors[i].shape;
+        final data = outputs[i];
+        
+        if (shape.length == 3 && shape[2] == 4) {
+          // [1, N, 4] is definitely boxes
+          boxes = (data as List)[0];
+        } else if (shape.length == 1 && shape[0] == 1) {
+          // [1] is likely count
+          final val = (data as List)[0];
+          count = (val is num) ? val.toInt() : (val as List)[0].toInt();
+        } else if (shape.length == 2) {
+          // [1, N] could be scores or classes
+          final list = (data as List)[0];
+          if (list.isEmpty) continue;
+          
+          // Heuristic: Scores are 0..1, Classes are often > 1
+          double maxVal = 0;
+          bool hasHighVal = false;
+          for (var v in list) {
+             final num val = v as num;
+             if (val > maxVal) maxVal = val.toDouble();
+             if (val > 1.1) hasHighVal = true;
+          }
+          
+          if (hasHighVal) {
+            classes = list;
+          } else {
+            scores = list;
+          }
         }
       }
-      
-      if (classesHasFractional) {
-         // Swap them.
-         final temp = classesBatch;
-         classesBatch = scoresBatch;
-         scoresBatch = temp;
+
+      // Fallback if discovery failed (try common SSD order)
+      boxes ??= (outputs[0] as List)[0];
+      classes ??= (outputs[1] as List)[0];
+      scores ??= (outputs[2] as List)[0];
+      if (count == 0) {
+        final countData = outputs[3];
+        count = (countData is List) ? (countData[0] as num).toInt() : 10;
+      }
+
+      // Final safety check: if we swapped scores and classes (e.g. all scores < 1 and classes also < 1)
+      // we check if classes has any non-integers
+      if (classes != null && scores != null) {
+        bool classesHasFractional = false;
+        for (var v in classes) {
+          if (v is double && v != v.roundToDouble()) {
+            classesHasFractional = true;
+            break;
+          }
+        }
+        if (classesHasFractional) {
+          final temp = classes;
+          classes = scores;
+          scores = temp;
+        }
       }
 
       final List<Map<String, dynamic>> detections = [];
+      final maxCount = boxes!.length;
+      final actualCount = count.clamp(0, maxCount);
 
-      for (int i = 0; i < count; i++) {
-        final score = (scoresBatch[i] as double).clamp(0.0, 1.0);
-        
-
-        
-        // Skip low confidence
+      for (int i = 0; i < actualCount; i++) {
+        final score = (scores![i] as num).toDouble().clamp(0.0, 1.0);
         if (score < data.confidenceThreshold) continue;
 
-        final classIdx = (classesBatch[i] as double).toInt().clamp(0, data.labels.length - 1);
-        final label = classIdx < data.labels.length ? data.labels[classIdx] : 'Unknown';
+        int classIdx = (classes![i] as num).toInt();
+        // Shift if 1-indexed
+        if (classIdx > 0 && classIdx <= data.labels.length) {
+           // Standard SSD behavior
+           classIdx -= 1;
+        }
+        
+        final label = classIdx >= 0 && classIdx < data.labels.length 
+            ? data.labels[classIdx] 
+            : 'Object';
 
-        final box = boxesBatch[i] as List<dynamic>;
+        final box = boxes[i] as List<dynamic>;
         final top = (box[0] as double).clamp(0.0, 1.0);
         final left = (box[1] as double).clamp(0.0, 1.0);
         final bottom = (box[2] as double).clamp(0.0, 1.0);
@@ -392,7 +418,7 @@ class DetectorCubit extends Cubit<DetectorState> {
 
   void stopDetection() {
     _isPaused = false;
-    emit(DetectorIdle());
+    emit(const DetectorState());
   }
 
   @override

@@ -32,25 +32,29 @@ class VisionCompanionApp extends StatelessWidget {
     final authCubit = getIt<AuthCubit>()..checkAuthState();
     final settingsCubit = getIt<SettingsCubit>()..loadSettings();
 
-    return MultiBlocProvider(providers: [
-      BlocProvider.value(value: authCubit),
-      BlocProvider.value(value: settingsCubit)
-    ], child: BlocBuilder<SettingsCubit, SettingsState>(builder: (context, settingsState){
-      return MaterialApp.router(
-        title: 'Vision Companion',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.dark,
-        routerConfig: AppRouter.router(authCubit),
-        locale: settingsState.locale,
-        supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        
-      );
-    },));
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: authCubit),
+        BlocProvider.value(value: settingsCubit),
+      ],
+      child: BlocBuilder<SettingsCubit, SettingsState>(
+        builder: (context, settingsState) {
+          return MaterialApp.router(
+            title: 'Vision Companion',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.dark,
+            routerConfig: AppRouter.router(authCubit),
+            locale: settingsState.locale,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+          );
+        },
+      ),
+    );
   }
 }

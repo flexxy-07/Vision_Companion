@@ -1,27 +1,32 @@
 part of 'detector_cubit.dart';
 
-sealed class DetectorState extends Equatable {
-  const DetectorState();
-  @override
-  List<Object?> get props => [];
-}
-
-final class DetectorIdle extends DetectorState {}
-
-final class DetectorRunning extends DetectorState {}
-
-final class DetectorPaused extends DetectorState {}
-
-final class DetectorResults extends DetectorState {
+class DetectorState extends Equatable {
   final List<Detection> detections;
-  const DetectorResults(this.detections);
-  @override
-  List<Object?> get props => [detections];
-}
+  final bool isPaused;
+  final bool isLoading;
+  final String? error;
 
-final class DetectorError extends DetectorState {
-  final String message;
-  const DetectorError(this.message);
+  const DetectorState({
+    this.detections = const [],
+    this.isPaused = false,
+    this.isLoading = false,
+    this.error,
+  });
+
+  DetectorState copyWith({
+    List<Detection>? detections,
+    bool? isPaused,
+    bool? isLoading,
+    String? error,
+  }) {
+    return DetectorState(
+      detections: detections ?? this.detections,
+      isPaused: isPaused ?? this.isPaused,
+      isLoading: isLoading ?? this.isLoading,
+      error: error ?? this.error,
+    );
+  }
+
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [detections, isPaused, isLoading, error];
 }

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:vision_companion/l10n/app_localizations.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import '../../../core/services/tts_service.dart';
 
 import '../../../core/di/injection.dart';
 import '../cubit/analyzer_cubit.dart';
@@ -26,6 +28,10 @@ class _AnalyzerPageState extends State<AnalyzerPage> {
   void initState() {
     super.initState();
     _initCamera();
+    FirebaseAnalytics.instance.logEvent(
+      name: 'feature_opened',
+      parameters: {'feature': 'analyzer'},
+    );
   }
 
   Future<void> _initCamera() async {
@@ -48,10 +54,11 @@ class _AnalyzerPageState extends State<AnalyzerPage> {
 
     final cubit = context.read<AnalyzerCubit>();
     final l10n = AppLocalizations.of(context);
-    
-    // TalkBack announcement
-    SemanticsService.sendAnnouncement(
-        View.of(context), l10n.analyzingImage, TextDirection.ltr);
+
+    getIt<TtsService>().speak(
+      l10n.analyzingImage,
+      l10n.localeName,
+    );
 
     final xFile = await _cameraController!.takePicture();
     final file = File(xFile.path);
@@ -59,7 +66,8 @@ class _AnalyzerPageState extends State<AnalyzerPage> {
     if (!mounted) return;
     setState(() => _capturedImage = file);
 
-    cubit.analyzeImage(file);
+    cubit.analyzeImage(file, l10n.localeName);
+    FirebaseAnalytics.instance.logEvent(name: 'image_analyzed');
   }
 
   @override
@@ -71,122 +79,134 @@ class _AnalyzerPageState extends State<AnalyzerPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    
+
     return BlocProvider(
       create: (_) => getIt<AnalyzerCubit>(),
-      child: Builder(builder: (context) {
-        return Scaffold(
-          appBar: AppBar(title: Text(l10n.feature2Title)),
-          body: BlocConsumer<AnalyzerCubit, AnalyzerState>(
-            listener: (context, state) {
-              if (state is AnalyzerError) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.red,
-                    action: SnackBarAction(
-                      label: l10n.retryLabel,
-                      textColor: Colors.white,
-                      onPressed: () {
-                        if (_capturedImage != null) {
-                          context
-                              .read<AnalyzerCubit>()
-                              .analyzeImage(_capturedImage!);
-                        }
-                      },
+      child: Builder(
+        builder: (context) {
+          return Scaffold(
+            appBar: AppBar(title: Text(l10n.feature2Title)),
+            body: BlocConsumer<AnalyzerCubit, AnalyzerState>(
+              listener: (context, state) {
+                if (state is AnalyzerResult) {
+                  // Automatic TalkBack announcement of results
+                  final announcement = '${state.data.description}. '
+                      '${l10n.detectedTags}: ${state.data.tags.map((t) => t.label).join(', ')}';
+                  getIt<TtsService>().speak(
+                    announcement,
+                    l10n.localeName,
+                  );
+                }
+                if (state is AnalyzerError) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: Colors.red,
+                      action: SnackBarAction(
+                        label: l10n.retryLabel,
+                        textColor: Colors.white,
+                        onPressed: () {
+                          if (_capturedImage != null) {
+                            context.read<AnalyzerCubit>().analyzeImage(
+                              _capturedImage!,
+                              l10n.localeName,
+                            );
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                );
-              }
-            },
-            builder: (context, state) {
-              final isProcessing = state is AnalyzerProcessing;
+                  );
+                }
+              },
+              builder: (context, state) {
+                final isProcessing = state is AnalyzerProcessing;
 
-              return Column(
-                children: [
-                  Expanded(
-                    child: state is AnalyzerResult
-                        ? _ResultView(
-                            data: state.data,
-                            image: _capturedImage,
-                          )
-                        : Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              // Camera or captured image
-                              if (_capturedImage != null)
-                                Image.file(
-                                  _capturedImage!,
-                                  fit: BoxFit.cover,
-                                )
-                              else if (_cameraReady &&
-                                  _cameraController != null)
-                                CameraPreview(_cameraController!)
-                              else
-                                const Center(
-                                    child: CircularProgressIndicator()),
-                              // Processing overlay
-                              if (isProcessing)
-                                Container(
-                                  color: Colors.black54,
-                                  child: Center(
-                                    child: Semantics(
-                                      label: l10n.processingLabel,
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const CircularProgressIndicator(
-                                              color: Colors.white),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            l10n.analyzingImage,
-                                            style: const TextStyle(
+                return Column(
+                  children: [
+                    Expanded(
+                      child: state is AnalyzerResult
+                          ? ExcludeSemantics(
+                              child: _ResultView(data: state.data, image: _capturedImage),
+                            )
+                          : ExcludeSemantics(
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  // Camera or captured image
+                                  if (_capturedImage != null)
+                                    Image.file(_capturedImage!, fit: BoxFit.cover)
+                                  else if (_cameraReady &&
+                                      _cameraController != null)
+                                    CameraPreview(_cameraController!)
+                                  else
+                                    const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  // Processing overlay
+                                  if (isProcessing)
+                                    Container(
+                                      color: Colors.black54,
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const CircularProgressIndicator(
+                                              color: Colors.white,
+                                            ),
+                                            const SizedBox(height: 16),
+                                            Text(
+                                              l10n.analyzingImage,
+                                              style: const TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 16),
-                                          ),
-                                        ],
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                  ),
-                  // Bottom controls
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 20, horizontal: 24),
-                    child: state is AnalyzerResult
-                        ? Semantics(
-                            button: true,
-                            label: l10n.retakePhotoLabel,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                setState(() => _capturedImage = null);
-                                context.read<AnalyzerCubit>().reset();
-                              },
-                              icon: const Icon(Icons.refresh),
-                              label: Text(l10n.retakePhoto),
+                                ],
+                              ),
                             ),
-                          )
-                        : Semantics(
-                            button: true,
-                            label: l10n.captureImageLabel,
-                            child: ElevatedButton.icon(
-                              onPressed: isProcessing
-                                  ? null
-                                  : () => _captureAndAnalyze(context),
-                              icon: const Icon(Icons.camera_alt),
-                              label: Text(l10n.captureImage),
+                    ),
+                    // Bottom controls
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 20,
+                        horizontal: 24,
+                      ),
+                      child: state is AnalyzerResult
+                          ? Semantics(
+                              button: true,
+                              label: l10n.retakePhotoLabel,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  setState(() => _capturedImage = null);
+                                  context.read<AnalyzerCubit>().reset();
+                                },
+                                icon: const Icon(Icons.refresh),
+                                label: Text(l10n.retakePhoto),
+                              ),
+                            )
+                          : Semantics(
+                              button: true,
+                              label: l10n.captureImageLabel,
+                              child: ElevatedButton.icon(
+                                onPressed: isProcessing
+                                    ? null
+                                    : () => _captureAndAnalyze(context),
+                                icon: const Icon(Icons.camera_alt),
+                                label: Text(l10n.captureImage),
+                              ),
                             ),
-                          ),
-                  ),
-                ],
-              );
-            },
-          ),
-        );
-      }),
+                    ),
+                  ],
+                );
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -220,18 +240,23 @@ class _ResultView extends StatelessWidget {
             ),
           const SizedBox(height: 16),
           // Description
-          Text(l10n.analysisResults,
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            l10n.analysisResults,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(data.description,
-              style: theme.textTheme.bodyLarge),
+          Text(data.description, style: theme.textTheme.bodyLarge),
           const SizedBox(height: 16),
           // Tags
           if (data.tags.isNotEmpty) ...[
-            Text(l10n.detectedTags,
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              l10n.detectedTags,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -242,9 +267,9 @@ class _ResultView extends StatelessWidget {
                       label: l10n.tagLabel(tag.label, tag.confidencePercentage),
                       child: Chip(
                         label: Text(
-                            '${tag.label}  ${tag.confidencePercentage}%'),
-                        backgroundColor:
-                            theme.colorScheme.primaryContainer,
+                          '${tag.label}  ${tag.confidencePercentage}%',
+                        ),
+                        backgroundColor: theme.colorScheme.primaryContainer,
                       ),
                     ),
                   )
@@ -254,9 +279,12 @@ class _ResultView extends StatelessWidget {
           // Colors
           if (data.dominantColors.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text(l10n.dominantColors,
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              l10n.dominantColors,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
